@@ -16,8 +16,8 @@ import {
   Search
 } from "lucide-react";
 import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
-import type { Product, ProductComponent, ProductUnit } from "../../sales/types";
-import { createId, todayIso } from "../../sales/utils";
+import type { Product, ProductComponent, ProductUnit, SalesOrder } from "../../sales/types";
+import { createId, isPrintableProductComponent, salesGeneratedOrdersStorageKey, todayIso } from "../../sales/utils";
 import { initialFabricationJobs, initialFabricationMachines } from "../data";
 import type {
   FabricationDispatchMode,
@@ -34,6 +34,7 @@ import type {
 import {
   calculateFabricationStats,
   clampProgress,
+  createFabricationJobsFromSales,
   fabricationConnectionLabels,
   fabricationDispatchModeLabels,
   fabricationJobStatusLabels,
@@ -276,6 +277,26 @@ function loadStoredJobs() {
   }
 }
 
+function loadStoredList<Item>(key: string, fallback: Item[]): Item[] {
+  try {
+    const storedValue = window.localStorage.getItem(key);
+
+    if (!storedValue) {
+      return fallback;
+    }
+
+    const parsedValue = JSON.parse(storedValue);
+
+    return Array.isArray(parsedValue) ? parsedValue : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function loadStoredSalesOrders() {
+  return loadStoredList<SalesOrder>(salesGeneratedOrdersStorageKey, []);
+}
+
 function saveStoredMachines(machines: FabricationMachine[]) {
   try {
     window.localStorage.setItem(machinesStorageKey, JSON.stringify(machines));
@@ -409,6 +430,8 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
   const [linkMessage, setLinkMessage] = useState("");
   const [agentSyncStatus, setAgentSyncStatus] = useState<AgentRequestStatus>("idle");
   const [agentSyncMessage, setAgentSyncMessage] = useState("");
+  const [salesOrders, setSalesOrders] = useState<SalesOrder[]>(loadStoredSalesOrders);
+  const [autoQueueMessage, setAutoQueueMessage] = useState("");
 
   useEffect(() => {
     setMachines((currentMachines) => {
@@ -433,7 +456,7 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
   const printableComponents = useMemo<PrintableComponentOption[]>(() => {
     return products.flatMap((product) =>
       product.components
-        .filter((component) => component.process === "impresion-3d")
+        .filter(isPrintableProductComponent)
         .map((component) => ({
           id: `${product.id}-${component.id}`,
           productName: product.name,
@@ -453,6 +476,16 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
 
   const stats = useMemo(() => calculateFabricationStats(machines, jobs), [machines, jobs]);
   const suggestedMachine = useMemo(() => recommendMachine(jobDraft, machines), [jobDraft, machines]);
+  const salesQueuePreview = useMemo(
+    () =>
+      createFabricationJobsFromSales({
+        products,
+        salesOrders,
+        machines,
+        existingJobs: jobs
+      }),
+    [products, salesOrders, machines, jobs]
+  );
   const queueGroups = useMemo(
     () => [
       {
@@ -469,8 +502,8 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
       },
       {
         id: "history",
-        title: "Historial",
-        empty: "Todavia no hay trabajos terminados.",
+        title: "Historial y bloqueos",
+        empty: "Todavia no hay trabajos cerrados o bloqueados.",
         jobs: filteredJobs.filter((job) => getQueueGroupId(job) === "history")
       }
     ],
@@ -532,6 +565,11 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
     }
 
     updateJobDraft("fileName", file.name);
+  }
+
+  function refreshSalesQueuePreview() {
+    setSalesOrders(loadStoredSalesOrders());
+    setAutoQueueMessage("Ordenes de Ventas sincronizadas.");
   }
 
   function handleMachineSubmit(event: FormEvent<HTMLFormElement>) {
@@ -887,6 +925,35 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
     setJobDraft(createEmptyJobDraft());
     setSelectedComponentId("manual");
     setJobError("");
+  }
+
+  function generateSalesFabricationQueue() {
+    const latestSalesOrders = loadStoredSalesOrders();
+    const result = createFabricationJobsFromSales({
+      products,
+      salesOrders: latestSalesOrders,
+      machines,
+      existingJobs: jobs
+    });
+    const totalPieces = result.jobsToCreate.reduce((total, job) => total + Number(job.quantity || 0), 0);
+    const blockedJobs = result.jobsToCreate.filter((job) => job.status === "bloqueado").length;
+
+    setSalesOrders(latestSalesOrders);
+
+    if (result.jobsToCreate.length === 0) {
+      setAutoQueueMessage(
+        result.summary.requirements > 0
+          ? "No hay trabajos nuevos; la demanda de impresion ya esta en cola."
+          : "No hay piezas 3D pendientes en ordenes aprobadas de Ventas."
+      );
+      return;
+    }
+
+    setJobs((currentJobs) => [...result.jobsToCreate, ...currentJobs]);
+    setAutoQueueMessage(
+      `Se agregaron ${result.jobsToCreate.length} trabajo(s), ${totalPieces} pieza(s) 3D.` +
+        (blockedJobs > 0 ? ` ${blockedJobs} quedaron bloqueado(s) por datos faltantes.` : "")
+    );
   }
 
   function updateJob(jobId: string, patch: Partial<FabricationJob>) {
@@ -1436,6 +1503,55 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
               </div>
             </div>
 
+            <section className="fabrication-auto-queue-panel">
+              <div className="fabrication-auto-queue-heading">
+                <div>
+                  <span className="section-kicker">Desde Ventas</span>
+                  <strong>Demanda automatica de impresion</strong>
+                </div>
+                <div className="fabrication-auto-queue-actions">
+                  <button className="secondary-button compact-button" onClick={refreshSalesQueuePreview} type="button">
+                    <RefreshCw size={15} />
+                    Actualizar
+                  </button>
+                  <button
+                    className="primary-button compact-button"
+                    disabled={salesQueuePreview.summary.newJobs === 0}
+                    onClick={generateSalesFabricationQueue}
+                    type="button"
+                  >
+                    <Plus size={15} />
+                    Generar cola
+                  </button>
+                </div>
+              </div>
+
+              <div className="fabrication-auto-queue-metrics">
+                <article>
+                  <span>Ordenes</span>
+                  <strong>{salesQueuePreview.summary.approvedOrders}</strong>
+                </article>
+                <article>
+                  <span>Piezas 3D</span>
+                  <strong>{salesQueuePreview.summary.totalPieces}</strong>
+                </article>
+                <article>
+                  <span>Por generar</span>
+                  <strong>{salesQueuePreview.summary.newJobs}</strong>
+                </article>
+                <article>
+                  <span>En cola</span>
+                  <strong>{salesQueuePreview.summary.existingJobs}</strong>
+                </article>
+                <article>
+                  <span>Bloqueos</span>
+                  <strong>{salesQueuePreview.summary.blockedJobs}</strong>
+                </article>
+              </div>
+
+              {autoQueueMessage ? <p className="fabrication-form-note">{autoQueueMessage}</p> : null}
+            </section>
+
             <form className="fabrication-job-form" onSubmit={handleJobSubmit}>
               <label className="field wide-field">
                 <span>Usar pieza 3D de productos</span>
@@ -1636,6 +1752,13 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
                           <div className="fabrication-job-stat">
                             <span>Material</span>
                             <strong>{job.material || "Sin material"}</strong>
+                          </div>
+
+                          <div className="fabrication-job-stat">
+                            <span>Cantidad</span>
+                            <strong>
+                              {job.quantity} {job.unit}
+                            </strong>
                           </div>
 
                           <div className="fabrication-job-stat">

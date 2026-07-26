@@ -1,5 +1,5 @@
 import { ArrowLeft, PackageSearch } from "lucide-react";
-import type { Product } from "../../sales/types";
+import type { Product, ProductStatus } from "../../sales/types";
 import { ProductCatalog } from "./ProductCatalog";
 
 type ProductCatalogScreenProps = {
@@ -8,6 +8,8 @@ type ProductCatalogScreenProps = {
   onBack: () => void;
   onNewProductOpened?: () => void;
   onSaveProduct: (product: Omit<Product, "id">, existingProduct?: Product) => void;
+  onTrashProduct: (productId: string) => void;
+  onUpdateProductStatus: (productId: string, status: ProductStatus) => void;
 };
 
 export function ProductCatalogScreen({
@@ -15,7 +17,9 @@ export function ProductCatalogScreen({
   openNewProduct = false,
   onBack,
   onNewProductOpened,
-  onSaveProduct
+  onSaveProduct,
+  onTrashProduct,
+  onUpdateProductStatus
 }: ProductCatalogScreenProps) {
   return (
     <main className="profile-screen product-profile-screen">
@@ -37,6 +41,8 @@ export function ProductCatalogScreen({
           products={products}
           onNewProductOpened={onNewProductOpened}
           onSaveProduct={onSaveProduct}
+          onTrashProduct={onTrashProduct}
+          onUpdateProductStatus={onUpdateProductStatus}
         />
       </section>
     </main>

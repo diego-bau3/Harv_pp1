@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist/reliability-tests",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "rootDir": "."
+  },
+  "include": ["scripts/reliability-flow-tests.ts", "src/**/*.ts"],
+  "exclude": ["src/**/*.tsx", "node_modules", "dist"]
+}

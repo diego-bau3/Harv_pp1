@@ -8,7 +8,9 @@ import type {
   PaymentTerm,
   Priority,
   Product,
+  ProductComponent,
   ProductCurrency,
+  ProductComponentOrigin,
   ProductComponentProcess,
   ProductComponentType,
   ProductSupplierContactMethod,
@@ -110,6 +112,16 @@ export const currencyLabels: Record<ProductCurrency, string> = {
   EUR: "EUR - EUROS"
 };
 
+export const productCategoryOptions = [
+  "Robot",
+  "Máquina",
+  "Subensamble",
+  "Kit",
+  "Refacción",
+  "Empaque",
+  "Servicio"
+] as const;
+
 export const materialOptions = ["PLA", "PETG", "TPU", "OTRO"] as const;
 
 export const colorOptions = ["NEGRO", "BLANCO", "AZUL", "OTRO"] as const;
@@ -135,18 +147,250 @@ export const componentTypeLabels: Record<ProductComponentType, string> = {
   otro: "Otro"
 };
 
+export const componentOriginLabels: Record<ProductComponentOrigin, string> = {
+  "fabricado-en-planta": "Fabricado en planta",
+  comprado: "Comprado",
+  "servicio-externo": "Servicio externo",
+  pendiente: "Pendiente por definir"
+};
+
 export const componentProcessLabels: Record<ProductComponentProcess, string> = {
   "impresion-3d": "Impresión 3D",
-  comprado: "Comprado",
-  fabricado: "Fabricado",
-  ensamblado: "Ensamblado",
+  cnc: "CNC / Maquinado",
+  "corte-laser": "Corte laser",
+  doblado: "Doblado",
+  soldadura: "Soldadura",
   cableado: "Cableado",
-  "servicio-externo": "Servicio externo",
+  ensamble: "Ensamble",
+  acabado: "Acabado / postproceso",
+  "fabricacion-manual": "Fabricacion manual",
   pendiente: "Pendiente"
 };
 
+export function getProductComponentOrigin(component: Pick<ProductComponent, "process"> & { origin?: ProductComponentOrigin }) {
+  if (component.origin) {
+    return component.origin;
+  }
+
+  const legacyProcess = String(component.process);
+
+  if (legacyProcess === "comprado" || legacyProcess === "servicio-externo") {
+    return legacyProcess;
+  }
+
+  if (legacyProcess === "pendiente") {
+    return "pendiente";
+  }
+
+  return "fabricado-en-planta";
+}
+
+export function getDefaultProductComponentProcess(type: ProductComponentType, origin: ProductComponentOrigin) {
+  if (origin !== "fabricado-en-planta") {
+    return "pendiente";
+  }
+
+  if (type === "pieza-impresa-3d") {
+    return "impresion-3d";
+  }
+
+  if (type === "pieza-fabricada") {
+    return "fabricacion-manual";
+  }
+
+  if (type === "cableado") {
+    return "cableado";
+  }
+
+  return "pendiente";
+}
+
+export function normalizeProductComponentProcess(
+  type: ProductComponentType,
+  origin: ProductComponentOrigin,
+  process?: ProductComponentProcess | string
+) {
+  if (origin !== "fabricado-en-planta") {
+    return "pendiente";
+  }
+
+  const currentProcess = String(process ?? "");
+
+  return Object.prototype.hasOwnProperty.call(componentProcessLabels, currentProcess)
+    ? (currentProcess as ProductComponentProcess)
+    : getDefaultProductComponentProcess(type, origin);
+}
+
+export function isExternalProductComponent(component: Pick<ProductComponent, "process"> & { origin?: ProductComponentOrigin }) {
+  const origin = getProductComponentOrigin(component);
+
+  return origin === "comprado" || origin === "servicio-externo";
+}
+
+export function isPrintableProductComponent(
+  component: Pick<ProductComponent, "process" | "type"> & { origin?: ProductComponentOrigin }
+) {
+  const origin = getProductComponentOrigin(component);
+
+  return origin === "fabricado-en-planta" && normalizeProductComponentProcess(component.type, origin, component.process) === "impresion-3d";
+}
+
+export type ProductComponentSpecField = {
+  key: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+};
+
+export const productComponentSpecTemplates: Partial<Record<ProductComponentType, ProductComponentSpecField[]>> = {
+  tornilleria: [
+    { key: "threadSize", label: "Rosca / medida", placeholder: "M3, M4, 1/4-20", required: true },
+    { key: "length", label: "Largo", placeholder: "12 mm", required: true },
+    { key: "headType", label: "Cabeza", placeholder: "Allen, hexagonal, avellanada" },
+    { key: "finish", label: "Acabado / grado", placeholder: "Negro 12.9, zincado 8.8" }
+  ],
+  motor: [
+    { key: "motorType", label: "Tipo de motor", placeholder: "Servo, stepper, DC, BLDC", required: true },
+    { key: "voltage", label: "Voltaje", placeholder: "12V, 24V", required: true },
+    { key: "torque", label: "Torque / fuerza", placeholder: "20 kg-cm, 1.8 Nm" },
+    { key: "rpm", label: "RPM / velocidad", placeholder: "60 RPM" },
+    { key: "shaft", label: "Eje / salida", placeholder: "D-shaft 6 mm" },
+    { key: "connector", label: "Conector / driver", placeholder: "JST-XH, A4988" }
+  ],
+  cableado: [
+    { key: "cableType", label: "Tipo", placeholder: "Arnes, cable suelto, ribbon", required: true },
+    { key: "gauge", label: "Calibre", placeholder: "22 AWG" },
+    { key: "length", label: "Longitud", placeholder: "300 mm", required: true },
+    { key: "connectorA", label: "Conector A", placeholder: "JST-XH 4p" },
+    { key: "connectorB", label: "Conector B", placeholder: "Terminal ferrul" },
+    { key: "pinout", label: "Pinout / notas", placeholder: "1=VCC, 2=GND..." }
+  ],
+  electronico: [
+    { key: "function", label: "Funcion", placeholder: "Sensor, controlador, fuente", required: true },
+    { key: "mpn", label: "MPN / modelo", placeholder: "ESP32-WROOM, LM2596", required: true },
+    { key: "voltage", label: "Voltaje", placeholder: "3.3V, 5V, 24V" },
+    { key: "current", label: "Corriente", placeholder: "2A max" },
+    { key: "protocol", label: "Comunicacion", placeholder: "I2C, UART, CAN, USB" },
+    { key: "datasheet", label: "Datasheet / link", placeholder: "https://..." }
+  ],
+  "pieza-impresa-3d": [
+    { key: "file", label: "Archivo maestro", placeholder: "base-motor.3mf" },
+    { key: "infill", label: "Infill / parametros", placeholder: "35%, 4 paredes" },
+    { key: "orientation", label: "Orientacion critica", placeholder: "Cara plana hacia cama" }
+  ],
+  "pieza-fabricada": [
+    { key: "process", label: "Proceso", placeholder: "CNC, corte laser, doblez", required: true },
+    { key: "drawing", label: "Plano / archivo", placeholder: "DWG, STEP, PDF" },
+    { key: "tolerance", label: "Tolerancia critica", placeholder: "+/-0.1 mm" },
+    { key: "finish", label: "Acabado", placeholder: "Anodizado, pintura, natural" }
+  ],
+  comprado: [
+    { key: "brandModel", label: "Marca / modelo", placeholder: "Marca y modelo exacto" },
+    { key: "criticalSpec", label: "Especificacion critica", placeholder: "Dimension, capacidad, rating" },
+    { key: "datasheet", label: "Ficha / link", placeholder: "https://..." }
+  ],
+  "servicio-externo": [
+    { key: "serviceType", label: "Tipo de servicio", placeholder: "Maquinado, pintura, tratamiento", required: true },
+    { key: "deliverable", label: "Entregable", placeholder: "Pieza tratada, certificado, reporte" },
+    { key: "requirement", label: "Requisito critico", placeholder: "Tolerancia, acabado, norma" }
+  ],
+  empaque: [
+    { key: "size", label: "Medida", placeholder: "20 x 15 x 8 cm" },
+    { key: "material", label: "Material / tipo", placeholder: "Carton corrugado, foam" },
+    { key: "labeling", label: "Etiqueta / impresion", placeholder: "SKU, logo, advertencia" }
+  ],
+  otro: [
+    { key: "description", label: "Descripcion tecnica", placeholder: "Que lo distingue exactamente", required: true },
+    { key: "criticalSpec", label: "Especificacion critica", placeholder: "Valor, medida o condicion clave" }
+  ]
+};
+
+export function getProductComponentSpecFields(type: ProductComponentType) {
+  return productComponentSpecTemplates[type] ?? [];
+}
+
+export function normalizeProductComponentSpecs(type: ProductComponentType, specs: ProductComponent["specs"] = {}) {
+  const fields = getProductComponentSpecFields(type);
+  const allowedKeys = new Set(fields.map((field) => field.key));
+
+  return Object.fromEntries(
+    Object.entries(specs)
+      .filter(([key]) => allowedKeys.has(key))
+      .map(([key, value]) => [key, value.trim()])
+      .filter(([, value]) => value.length > 0)
+  );
+}
+
+export function formatProductComponentSpecs(type: ProductComponentType, specs: ProductComponent["specs"] = {}) {
+  return getProductComponentSpecFields(type)
+    .map((field) => {
+      const value = specs[field.key]?.trim();
+
+      return value ? `${field.label}: ${value}` : "";
+    })
+    .filter(Boolean)
+    .join("; ");
+}
+
 export function createId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
+}
+
+const skuStopWords = new Set(["DE", "DEL", "CON", "PARA", "Y", "LA", "EL", "LOS", "LAS", "UN", "UNA", "THE", "AND", "OF", "FOR"]);
+
+function normalizeSkuText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function createProductSkuPrefix(productName: string) {
+  const words = normalizeSkuText(productName)
+    .split(/[^A-Z0-9]+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0 && !skuStopWords.has(word));
+
+  const modelCode = words.find((word) => /[A-Z]/.test(word) && /\d/.test(word));
+
+  if (modelCode) {
+    return modelCode.slice(0, 6);
+  }
+
+  if (words.length === 0) {
+    return "PRD";
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 4).padEnd(3, "X").slice(0, 4);
+  }
+
+  return words
+    .slice(0, 4)
+    .map((word) => word[0])
+    .join("")
+    .padEnd(3, "X")
+    .slice(0, 4);
+}
+
+export function generateProductSku(productName: string, products: Pick<Product, "id" | "sku">[], currentProductId?: string) {
+  const prefix = createProductSkuPrefix(productName);
+  const skuPattern = new RegExp(`^${escapeRegExp(prefix)}-(\\d+)$`);
+  const highestSuffix = products.reduce((highest, product) => {
+    if (product.id === currentProductId) {
+      return highest;
+    }
+
+    const match = product.sku.trim().toUpperCase().match(skuPattern);
+
+    return match ? Math.max(highest, Number(match[1] || 0)) : highest;
+  }, 0);
+
+  return `${prefix}-${String(highestSuffix + 1).padStart(3, "0")}`;
 }
 
 export function todayIso() {
@@ -281,17 +525,24 @@ export function productMatches(product: Product, query: string) {
     product.sku,
     product.category,
     product.shortDescription,
-    ...product.components.flatMap((component) => [
-      component.name,
-      component.material,
-      supplierContactMethodLabels[component.supplierContactMethod],
-      component.supplierExternalPlatform,
-      component.supplierCompany,
-      component.supplierPartNumber,
-      component.needsSupplierResearch ? "sin proveedor pendiente compras" : "",
-      component.supplierResearchNotes,
-      ...component.printDesigns.flatMap((design) => [design.printer, design.fileName])
-    ])
+    ...product.components.flatMap((component) => {
+      const origin = getProductComponentOrigin(component);
+      const process = normalizeProductComponentProcess(component.type, origin, component.process);
+
+      return [
+        component.name,
+        component.material,
+        componentOriginLabels[origin],
+        componentProcessLabels[process],
+        supplierContactMethodLabels[component.supplierContactMethod],
+        component.supplierExternalPlatform,
+        component.supplierCompany,
+        component.supplierPartNumber,
+        component.needsSupplierResearch ? "sin proveedor pendiente compras" : "",
+        component.supplierResearchNotes,
+        ...component.printDesigns.flatMap((design) => [design.printer, design.fileName])
+      ];
+    })
   ];
 
   return searchableFields.some((field) => field.toLowerCase().includes(normalizedQuery));

@@ -1,6 +1,6 @@
-import { Edit3, PackagePlus, Search } from "lucide-react";
+import { Edit3, PackagePlus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { Product } from "../../sales/types";
+import type { Product, ProductStatus } from "../../sales/types";
 import { componentTypeLabels, formatCurrency, productMatches, productStatusLabels } from "../../sales/utils";
 import { ProductEditorModal } from "./ProductEditorModal";
 
@@ -11,13 +11,17 @@ type ProductCatalogProps = {
   openNewProduct?: boolean;
   onNewProductOpened?: () => void;
   onSaveProduct: (product: ProductDraft, existingProduct?: Product) => void;
+  onTrashProduct: (productId: string) => void;
+  onUpdateProductStatus: (productId: string, status: ProductStatus) => void;
 };
 
 export function ProductCatalog({
   products,
   openNewProduct = false,
   onNewProductOpened,
-  onSaveProduct
+  onSaveProduct,
+  onTrashProduct,
+  onUpdateProductStatus
 }: ProductCatalogProps) {
   const [query, setQuery] = useState("");
   const [productEditorModal, setProductEditorModal] = useState<{ product?: Product } | null>(null);
@@ -74,8 +78,6 @@ export function ProductCatalog({
               <strong>{formatCurrency(product.basePrice, product.currency)}</strong>
             </div>
 
-            <span className={`status-pill ${product.status}`}>{productStatusLabels[product.status]}</span>
-
             <div className="product-component-preview">
               {product.components.slice(0, 4).map((component) => (
                 <span key={component.id}>{componentTypeLabels[component.type]}</span>
@@ -84,9 +86,38 @@ export function ProductCatalog({
             </div>
 
             <div className="client-actions">
+              <label className="product-status-control">
+                <span>Estado</span>
+                <select
+                  className={`product-status-select ${product.status}`}
+                  value={product.status}
+                  onChange={(event) => onUpdateProductStatus(product.id, event.target.value as ProductStatus)}
+                >
+                  {Object.entries(productStatusLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button className="secondary-button compact-button" onClick={() => setProductEditorModal({ product })} type="button">
                 <Edit3 size={15} />
                 Editar
+              </button>
+              <button
+                aria-label={`Mandar ${product.name || product.sku || "producto"} a la basura`}
+                className="icon-button ghost product-trash-button"
+                onClick={() => {
+                  const shouldTrashProduct = window.confirm(`¿Mandar ${product.name || product.sku || "este producto"} a la basura?`);
+
+                  if (shouldTrashProduct) {
+                    onTrashProduct(product.id);
+                  }
+                }}
+                title="Mandar a la basura"
+                type="button"
+              >
+                <Trash2 size={17} />
               </button>
             </div>
           </article>
@@ -99,6 +130,7 @@ export function ProductCatalog({
       {productEditorModal ? (
         <ProductEditorModal
           product={productEditorModal.product}
+          products={products}
           onClose={() => setProductEditorModal(null)}
           onSave={(product, existingProduct) => {
             onSaveProduct(product, existingProduct);

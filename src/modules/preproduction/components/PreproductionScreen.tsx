@@ -18,10 +18,16 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Product } from "../../sales/types";
-import { componentProcessLabels, componentTypeLabels, productUnitLabels } from "../../sales/utils";
+import {
+  componentOriginLabels,
+  componentProcessLabels,
+  componentTypeLabels,
+  getProductComponentOrigin,
+  normalizeProductComponentProcess,
+  productUnitLabels
+} from "../../sales/utils";
 import { plantSupplies } from "../../supplies/data";
 import { plantSupplyCategoryLabels } from "../../supplies/utils";
-import { so101SampleProductId } from "../data";
 import type {
   PreproductionProcessType,
   PreproductionResource,
@@ -36,6 +42,8 @@ import {
   createEmptyRoute,
   emptyPreproductionStepDraft,
   formatRouteMinutes,
+  getDefaultPreproductionRequiredArea,
+  getPreproductionRequiredAreaOptions,
   normalizeStepSequence,
   nowIso,
   preproductionId,
@@ -100,7 +108,7 @@ const emptyConsumableDraft: ResourceDraft = {
 };
 
 function getDefaultProductId(products: Product[]) {
-  return products.find((product) => product.id === so101SampleProductId || product.sku === "SO101")?.id ?? products[0]?.id ?? "";
+  return products[0]?.id ?? "";
 }
 
 function getProductFolderSummary(product: Product, route?: PreproductionRoute) {
@@ -324,6 +332,7 @@ export function PreproductionScreen({
   const stationTimeSummaries = selectedRoute ? summarizeRouteMinutesByStation(selectedRoute) : [];
   const processTimeSummaries = selectedRoute ? summarizeRouteMinutesByProcess(selectedRoute) : [];
   const componentUsageSummaries = summarizeComponentUsage(selectedRoute, selectedProduct, stepDraft, editingStepId);
+  const requiredAreaOptions = getPreproductionRequiredAreaOptions(stepDraft.station);
   const overusedComponents = componentUsageSummaries.filter((componentUsage) => componentUsage.isOverused);
   const underusedComponents = componentUsageSummaries.filter(
     (componentUsage) => !componentUsage.isOverused && componentUsage.availableQuantity > 0
@@ -375,6 +384,19 @@ export function PreproductionScreen({
 
   function updateStepDraft<Key extends keyof PreproductionStepDraft>(key: Key, value: PreproductionStepDraft[Key]) {
     setStepDraft((currentDraft) => ({ ...currentDraft, [key]: value }));
+  }
+
+  function updateStepProcessType(processType: PreproductionProcessType) {
+    setStepDraft((currentDraft) => {
+      const currentDefaultArea = getDefaultPreproductionRequiredArea(currentDraft.processType);
+      const shouldUseDefaultArea = !currentDraft.station.trim() || currentDraft.station === currentDefaultArea;
+
+      return {
+        ...currentDraft,
+        processType,
+        station: shouldUseDefaultArea ? getDefaultPreproductionRequiredArea(processType) : currentDraft.station
+      };
+    });
   }
 
   function updateComponentUseDraft<Key extends keyof ComponentUseDraft>(key: Key, value: ComponentUseDraft[Key]) {
@@ -579,7 +601,7 @@ export function PreproductionScreen({
       isKittingStep: false,
       name: step.name,
       processType: step.processType,
-      station: step.station,
+      station: step.station || getDefaultPreproductionRequiredArea(step.processType),
       estimatedMinutes: step.estimatedMinutes,
       outputName: step.outputName,
       outputQuantity: step.outputQuantity,
@@ -609,7 +631,7 @@ export function PreproductionScreen({
     }
 
     if (!stepDraft.name.trim() || !stepDraft.station.trim()) {
-      setFormError("Agrega nombre del paso y estación.");
+      setFormError("Agrega nombre del paso y área / recurso requerido.");
       return;
     }
 
@@ -920,6 +942,20 @@ export function PreproductionScreen({
                 const component = selectedProduct?.components.find(
                   (currentComponent) => currentComponent.id === componentUsage.componentId
                 );
+                const componentOrigin = component ? getProductComponentOrigin(component) : null;
+                const componentProcess =
+                  component && componentOrigin === "fabricado-en-planta"
+                    ? normalizeProductComponentProcess(component.type, componentOrigin, component.process)
+                    : null;
+                const componentLabel = component
+                  ? [
+                      componentTypeLabels[component.type],
+                      componentOrigin ? componentOriginLabels[componentOrigin] : "",
+                      componentProcess ? componentProcessLabels[componentProcess] : ""
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : "Componente";
                 const statusClass = componentUsage.isOverused
                   ? "over"
                   : componentUsage.availableQuantity === 0
@@ -930,9 +966,7 @@ export function PreproductionScreen({
                   <article className={`preproduction-component-row ${statusClass}`} key={componentUsage.componentId}>
                     <div>
                       <strong>{componentUsage.name}</strong>
-                      <span>
-                        {component ? `${componentTypeLabels[component.type]} · ${componentProcessLabels[component.process]}` : "Componente"}
-                      </span>
+                      <span>{componentLabel}</span>
                     </div>
                     <div className="preproduction-component-quantity-grid">
                       <span>Total {componentUsage.plannedQuantity}</span>
@@ -993,7 +1027,7 @@ export function PreproductionScreen({
                   <span>Tipo</span>
                   <select
                     value={stepDraft.processType}
-                    onChange={(event) => updateStepDraft("processType", event.target.value as PreproductionProcessType)}
+                    onChange={(event) => updateStepProcessType(event.target.value as PreproductionProcessType)}
                   >
                     {Object.entries(preproductionProcessLabels).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -1003,12 +1037,17 @@ export function PreproductionScreen({
                   </select>
                 </label>
                 <label className="field">
-                  <span>Estación</span>
-                  <input
+                  <span>Área / recurso requerido</span>
+                  <select
                     value={stepDraft.station}
                     onChange={(event) => updateStepDraft("station", event.target.value)}
-                    placeholder="Ej. Ensamble 1"
-                  />
+                  >
+                    {requiredAreaOptions.map((area) => (
+                      <option key={area} value={area}>
+                        {area}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="field">
                   <span>Tiempo min</span>
@@ -1251,7 +1290,7 @@ export function PreproductionScreen({
                       <input
                         value={consumableDraft.name}
                         onChange={(event) => updateConsumableDraft("name", event.target.value)}
-                        placeholder="Ej. Loctite 243"
+                        placeholder="Ej. Adhesivo, etiqueta o aceite"
                       />
                     </label>
                     <label className="field">
@@ -1470,7 +1509,7 @@ export function PreproductionScreen({
           <article className="main-panel preproduction-resource-summary">
             <div className="clean-section-heading">
               <div>
-                <h2>Herramientas y consumibles por estación</h2>
+                <h2>Herramientas y consumibles por área</h2>
                 <p>Resumen automático de recursos necesarios.</p>
               </div>
             </div>
@@ -1502,7 +1541,7 @@ export function PreproductionScreen({
               ))}
 
               {resourceSummaries.length === 0 ? (
-                <p className="empty-state">Agrega herramientas o consumibles en los pasos para ver el resumen por estación.</p>
+                <p className="empty-state">Agrega herramientas o consumibles en los pasos para ver el resumen por área.</p>
               ) : null}
             </div>
           </article>
@@ -1510,13 +1549,13 @@ export function PreproductionScreen({
           <article className="main-panel preproduction-time-panel">
             <div className="clean-section-heading">
               <div>
-                <h2>Tiempos por estación y proceso</h2>
+                <h2>Tiempos por área y proceso</h2>
                 <p>Distribución de minutos para balancear la ruta.</p>
               </div>
             </div>
             <div className="preproduction-time-columns">
               <section>
-                <span>Estaciones</span>
+                <span>Áreas / recursos</span>
                 {stationTimeSummaries.map((summary) => (
                   <p key={summary.station}>
                     {summary.station} · {formatRouteMinutes(summary.minutes)}

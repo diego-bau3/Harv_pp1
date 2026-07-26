@@ -23,8 +23,6 @@ import type { ProductionGeneratedPlan, ProductionShiftSettings } from "../types"
 import {
   createProductionPendingQueue,
   createDefaultShiftSettings,
-  createSo101SamplePendingQueue,
-  createSo101SamplePlanningContext,
   formatPlanTime,
   formatProductionMinutes,
   generateProductionPlan,
@@ -41,8 +39,6 @@ type ProductionScreenProps = {
   onBack: () => void;
 };
 
-type PlannerMode = "sample" | "real";
-
 function formatDate(value: string) {
   if (!value) {
     return "Sin fecha";
@@ -57,18 +53,11 @@ function formatDate(value: string) {
 
 export function ProductionScreen({ products, onBack }: ProductionScreenProps) {
   const [shiftSettings, setShiftSettings] = useState<ProductionShiftSettings>(() => createDefaultShiftSettings());
-  const [plannerMode, setPlannerMode] = useState<PlannerMode>("sample");
   const basePlanningContext = useMemo(() => loadProductionPlanningContext(), [products]);
-  const planningContext = useMemo(
-    () => (plannerMode === "sample" ? createSo101SamplePlanningContext(products, basePlanningContext) : basePlanningContext),
-    [basePlanningContext, plannerMode, products]
-  );
+  const planningContext = basePlanningContext;
   const pendingQueue = useMemo(
-    () =>
-      plannerMode === "sample"
-        ? createSo101SamplePendingQueue(products, shiftSettings.planDate)
-        : createProductionPendingQueue(products, shiftSettings.planDate),
-    [plannerMode, products, shiftSettings.planDate]
+    () => createProductionPendingQueue(products, shiftSettings.planDate),
+    [products, shiftSettings.planDate]
   );
   const [generatedPlan, setGeneratedPlan] = useState<ProductionGeneratedPlan | null>(null);
   const visiblePlan =
@@ -85,11 +74,6 @@ export function ProductionScreen({ products, onBack }: ProductionScreenProps) {
       ...currentSettings,
       [key]: value
     }));
-  }
-
-  function changePlannerMode(mode: PlannerMode) {
-    setGeneratedPlan(null);
-    setPlannerMode(mode);
   }
 
   function handleGeneratePlan() {
@@ -127,22 +111,6 @@ export function ProductionScreen({ products, onBack }: ProductionScreenProps) {
               Producción analiza {pendingQueue.sourceLabel.toLowerCase()}, agrupa recolecciones y propone el orden del
               turno sin capturar trabajo manualmente.
             </p>
-            <div className="production-mode-switch" aria-label="Modo del planner">
-              <button
-                className={plannerMode === "sample" ? "active" : ""}
-                onClick={() => changePlannerMode("sample")}
-                type="button"
-              >
-                Sample SO101 x10
-              </button>
-              <button
-                className={plannerMode === "real" ? "active" : ""}
-                onClick={() => changePlannerMode("real")}
-                type="button"
-              >
-                Datos reales
-              </button>
-            </div>
           </div>
           <div className="production-command-summary">
             <article>
@@ -282,20 +250,10 @@ export function ProductionScreen({ products, onBack }: ProductionScreenProps) {
                 <span className="section-kicker">Cola automática</span>
                 <h2>Órdenes pendientes por planear</h2>
                 <p>
-                  Fuente actual: {pendingQueue.sourceLabel}.{" "}
-                  {pendingQueue.source === "demo" ? "Genera una orden aprobada en Ventas para reemplazarla." : ""}
+                  Fuente actual: {pendingQueue.sourceLabel}. Genera una orden aprobada en Ventas para alimentar esta cola.
                 </p>
               </div>
             </div>
-
-            {plannerMode === "sample" ? (
-              <div className="production-sample-note">
-                <strong>Prueba activa:</strong>
-                <span>
-                  SO101 x10 · ensamble 8 min por equipo · 10 x 8 = 80 min de trabajo · 2 estaciones = 40 min calendario.
-                </span>
-              </div>
-            ) : null}
 
             <div className="production-pending-list">
               {pendingQueue.orders.map((order) => (
@@ -308,7 +266,7 @@ export function ProductionScreen({ products, onBack }: ProductionScreenProps) {
                     <p>{order.clientName}</p>
                   </div>
                   <div className="production-pending-meta">
-                    <span>{order.sourceType === "ventas" ? "Ventas" : order.sourceType === "sample" ? "Sample" : "Demo"}</span>
+                    <span>Ventas</span>
                     <span>{order.quantity} equipos</span>
                     <span>{formatDate(order.dueDate)}</span>
                     <span>{priorityLabels[order.priority]}</span>

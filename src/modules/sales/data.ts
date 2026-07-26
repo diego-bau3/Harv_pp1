@@ -12,205 +12,337 @@ export const salesUser: SalesUser = {
 
 export const initialClients: Client[] = [];
 
-type ProductComponentSeed = Product["components"][number];
-type PrintedComponentSeed = Pick<ProductComponentSeed, "id" | "name" | "quantity" | "material" | "color" | "notes"> & {
-  fileName: string;
-};
-type PurchasedComponentSeed = Pick<
-  ProductComponentSeed,
-  "id" | "name" | "type" | "quantity" | "material" | "color" | "notes"
-> & {
-  supplierContactMethod?: ProductComponentSeed["supplierContactMethod"];
-  supplierExternalPlatform?: string;
-  supplierCompany?: string;
-  supplierPartNumber?: string;
-  unitCost?: number;
-  leadTime?: string;
-  needsSupplierResearch?: boolean;
-  supplierResearchNotes?: string;
-};
-
-const emptySupplierFields: Pick<
-  ProductComponentSeed,
-  | "supplierContactMethod"
-  | "supplierExternalPlatform"
-  | "supplierCompany"
-  | "supplierContact"
-  | "supplierEmail"
-  | "supplierPhone"
-  | "supplierPartNumber"
-  | "unitCost"
-  | "leadTime"
-  | "minimumPurchaseQuantity"
-  | "referenceLink"
-> = {
-  supplierContactMethod: "whatsapp",
-  supplierExternalPlatform: "",
-  supplierCompany: "",
-  supplierContact: "",
-  supplierEmail: "",
-  supplierPhone: "",
-  supplierPartNumber: "",
-  unitCost: 0,
-  leadTime: "",
-  minimumPurchaseQuantity: "",
-  referenceLink: ""
-};
-
-function printedComponent(component: PrintedComponentSeed): ProductComponentSeed {
-  return {
-    id: component.id,
-    name: component.name,
-    type: "pieza-impresa-3d",
-    quantity: component.quantity,
-    unit: "pieza",
-    process: "impresion-3d",
-    material: component.material,
-    color: component.color,
-    ...emptySupplierFields,
-    needsSupplierResearch: false,
-    supplierResearchNotes: "",
-    printDesigns: [
-      {
-        id: `${component.id}-p1s`,
-        printer: "P1S",
-        fileName: component.fileName,
-        notes: "Diseño base para impresión en P1S."
-      }
-    ],
-    notes: component.notes
-  };
-}
-
-function purchasedComponent(component: PurchasedComponentSeed): ProductComponentSeed {
-  return {
-    id: component.id,
-    name: component.name,
-    type: component.type,
-    quantity: component.quantity,
-    unit: "pieza",
-    process: "comprado",
-    material: component.material,
-    color: component.color,
-    ...emptySupplierFields,
-    supplierContactMethod: component.supplierContactMethod ?? "whatsapp",
-    supplierExternalPlatform: component.supplierExternalPlatform ?? "",
-    supplierCompany: component.supplierCompany ?? "",
-    supplierPartNumber: component.supplierPartNumber ?? "",
-    unitCost: component.unitCost ?? 0,
-    leadTime: component.leadTime ?? "",
-    needsSupplierResearch: component.needsSupplierResearch ?? false,
-    supplierResearchNotes: component.supplierResearchNotes ?? "",
-    printDesigns: [],
-    notes: component.notes
-  };
-}
-
 export const productCatalog: Product[] = [
   {
     id: "product-so101",
-    sku: "SO101",
-    name: "SO101 - Brazo robot con gripper",
-    shortDescription: "Kit de brazo robot de 6 motores con bases, soportes y gripper impresos en 3D.",
-    category: "Robotica educativa",
-    basePrice: 24500,
+    sku: "SO101-001",
+    name: "SO101",
+    shortDescription: "Brazo robotico SO101 armado y probado para LeRobot.",
+    category: "Robot",
+    basePrice: 5800,
     currency: "MXN",
-    unit: "set",
+    unit: "pieza",
     status: "activo",
-    commercialNotes: "Producto de ejemplo para validar orden de venta y lista tecnica de componentes.",
-    technicalNotes: "Todas las piezas estructurales se imprimen en 3D. Motores y tornilleria se compran externamente.",
+    commercialNotes: "",
+    technicalNotes: "",
     components: [
-      purchasedComponent({
-        id: "so101-tornillo-m3x12",
-        name: "Tornillo M3x12 cabeza socket",
-        type: "tornilleria",
-        quantity: 30,
-        material: "ACERO INOXIDABLE",
-        color: "NEGRO",
-        supplierContactMethod: "email",
-        supplierCompany: "Tornilleria Industrial MX",
-        supplierPartNumber: "M3X12-SOCKET-BLK",
-        unitCost: 1.8,
-        leadTime: "3 dias",
-        notes: "Tornilleria principal para bases, soportes y gripper."
-      }),
-      purchasedComponent({
-        id: "so101-motor-servo-bus",
-        name: "Motor servo bus compacto",
+      {
+        id: "so101-servo-sts3215",
+        name: "Servo Feetech STS3215 7.4V",
         type: "motor",
         quantity: 6,
-        material: "METAL",
-        color: "NEGRO",
+        unit: "pieza",
+        origin: "comprado",
+        process: "pendiente",
+        specs: {
+          motorType: "Servo bus",
+          voltage: "7.4V",
+          torque: "16.5 kg-cm aprox.",
+          connector: "Bus serial"
+        },
+        material: "",
+        color: "",
         supplierContactMethod: "externa",
         supplierExternalPlatform: "ALIBABA",
-        needsSupplierResearch: true,
-        supplierResearchNotes:
-          "Compras debe investigar motor servo bus compatible con SO101, torque minimo 12 kg-cm y voltaje 12 V. Revisar Alibaba y proveedor alterno.",
-        notes: "Un motor por eje del brazo robot."
-      }),
-      printedComponent({
-        id: "so101-base-motor-3d",
-        name: "Base de motor impresa 3D",
-        quantity: 8,
-        material: "PETG",
-        color: "NEGRO",
-        fileName: "SO101_BASE_MOTOR_P1S.3mf",
-        notes: "Base modular para montar motores y refuerzos del brazo."
-      }),
-      printedComponent({
-        id: "so101-soporte-motor-3d",
-        name: "Soporte de motor impreso 3D",
-        quantity: 4,
-        material: "PETG",
-        color: "NEGRO",
-        fileName: "SO101_SOPORTE_MOTOR_P1S.3mf",
-        notes: "Soporte lateral para alinear motores en articulaciones."
-      }),
-      printedComponent({
-        id: "so101-gripper-palma-3d",
-        name: "Gripper palma central impresa 3D",
+        supplierCompany: "Feetech / reseller",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "STS3215-C001",
+        unitCost: 350,
+        leadTime: "14 dias",
+        minimumPurchaseQuantity: "6",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [],
+        notes: "Servo principal para articulaciones del brazo."
+      },
+      {
+        id: "so101-control-board",
+        name: "Motor control board",
+        type: "electronico",
         quantity: 1,
-        material: "PETG",
-        color: "NEGRO",
-        fileName: "SO101_GRIPPER_PALMA_P1S.3mf",
-        notes: "Cuerpo central del gripper."
-      }),
-      printedComponent({
-        id: "so101-gripper-dedo-izq-3d",
-        name: "Gripper dedo izquierdo impreso 3D",
+        unit: "pieza",
+        origin: "comprado",
+        process: "pendiente",
+        specs: {
+          function: "Control de servos",
+          mpn: "Bus servo controller",
+          voltage: "5V / 7.4V",
+          protocol: "UART / bus servo"
+        },
+        material: "",
+        color: "",
+        supplierContactMethod: "externa",
+        supplierExternalPlatform: "AMAZON BUSINESS",
+        supplierCompany: "Proveedor electronico",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "SO101-CTRL",
+        unitCost: 280,
+        leadTime: "7 dias",
+        minimumPurchaseQuantity: "1",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [],
+        notes: "Controlador compatible con servos bus."
+      },
+      {
+        id: "so101-base-print",
+        name: "Base impresa SO101",
+        type: "pieza-impresa-3d",
         quantity: 1,
+        unit: "pieza",
+        origin: "fabricado-en-planta",
+        process: "impresion-3d",
+        specs: {
+          file: "SO101_Base.3mf",
+          infill: "35%, 4 paredes",
+          orientation: "Cara plana hacia cama"
+        },
         material: "PETG",
         color: "NEGRO",
-        fileName: "SO101_GRIPPER_DEDO_IZQUIERDO_P1S.3mf",
-        notes: "Dedo izquierdo del mecanismo de agarre."
-      }),
-      printedComponent({
-        id: "so101-gripper-dedo-der-3d",
-        name: "Gripper dedo derecho impreso 3D",
+        supplierContactMethod: "email",
+        supplierExternalPlatform: "",
+        supplierCompany: "Fabricacion interna",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "SO101-PRINT-BASE",
+        unitCost: 95,
+        leadTime: "1 dia",
+        minimumPurchaseQuantity: "",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [{ id: "so101-base-print-p1s", printer: "P1S", fileName: "SO101_Base.3mf", notes: "PETG negro" }],
+        notes: "Costo estimado de material, merma y tiempo de maquina."
+      },
+      {
+        id: "so101-arm-lower-print",
+        name: "Brazo inferior impreso SO101",
+        type: "pieza-impresa-3d",
         quantity: 1,
+        unit: "pieza",
+        origin: "fabricado-en-planta",
+        process: "impresion-3d",
+        specs: {
+          file: "SO101_Lower_Arm.3mf",
+          infill: "35%, 4 paredes",
+          orientation: "Eje alineado a capas"
+        },
         material: "PETG",
         color: "NEGRO",
-        fileName: "SO101_GRIPPER_DEDO_DERECHO_P1S.3mf",
-        notes: "Dedo derecho del mecanismo de agarre."
-      }),
-      printedComponent({
-        id: "so101-gripper-muneca-3d",
-        name: "Gripper placa de muneca impresa 3D",
+        supplierContactMethod: "email",
+        supplierExternalPlatform: "",
+        supplierCompany: "Fabricacion interna",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "SO101-PRINT-LARM",
+        unitCost: 115,
+        leadTime: "1 dia",
+        minimumPurchaseQuantity: "",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [{ id: "so101-lower-print-p1s", printer: "P1S", fileName: "SO101_Lower_Arm.3mf", notes: "PETG negro" }],
+        notes: "Pieza estructural principal."
+      },
+      {
+        id: "so101-arm-upper-print",
+        name: "Brazo superior impreso SO101",
+        type: "pieza-impresa-3d",
         quantity: 1,
+        unit: "pieza",
+        origin: "fabricado-en-planta",
+        process: "impresion-3d",
+        specs: {
+          file: "SO101_Upper_Arm.3mf",
+          infill: "35%, 4 paredes",
+          orientation: "Eje alineado a capas"
+        },
         material: "PETG",
         color: "NEGRO",
-        fileName: "SO101_GRIPPER_MUNECA_P1S.3mf",
-        notes: "Interfaz entre gripper y ultimo eje del brazo."
-      }),
-      printedComponent({
-        id: "so101-gripper-separador-3d",
-        name: "Gripper separador de cierre impreso 3D",
-        quantity: 2,
+        supplierContactMethod: "email",
+        supplierExternalPlatform: "",
+        supplierCompany: "Fabricacion interna",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "SO101-PRINT-UARM",
+        unitCost: 105,
+        leadTime: "1 dia",
+        minimumPurchaseQuantity: "",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [{ id: "so101-upper-print-p1s", printer: "P1S", fileName: "SO101_Upper_Arm.3mf", notes: "PETG negro" }],
+        notes: "Pieza estructural secundaria."
+      },
+      {
+        id: "so101-gripper-print",
+        name: "Gripper impreso SO101",
+        type: "pieza-impresa-3d",
+        quantity: 1,
+        unit: "set",
+        origin: "fabricado-en-planta",
+        process: "impresion-3d",
+        specs: {
+          file: "SO101_Gripper.3mf",
+          infill: "30%, 3 paredes",
+          orientation: "Dedos horizontales"
+        },
         material: "PETG",
         color: "NEGRO",
-        fileName: "SO101_GRIPPER_SEPARADOR_P1S.3mf",
-        notes: "Separadores para mantener la apertura del gripper alineada."
-      })
+        supplierContactMethod: "email",
+        supplierExternalPlatform: "",
+        supplierCompany: "Fabricacion interna",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "SO101-PRINT-GRIP",
+        unitCost: 85,
+        leadTime: "1 dia",
+        minimumPurchaseQuantity: "",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [{ id: "so101-gripper-print-p1s", printer: "P1S", fileName: "SO101_Gripper.3mf", notes: "PETG negro" }],
+        notes: "Incluye dedos y soportes del gripper."
+      },
+      {
+        id: "so101-screws-kit",
+        name: "Kit de tornilleria SO101",
+        type: "tornilleria",
+        quantity: 1,
+        unit: "set",
+        origin: "comprado",
+        process: "pendiente",
+        specs: {
+          threadSize: "M2.5 / M3",
+          length: "Varias longitudes",
+          headType: "Allen",
+          finish: "Acero negro"
+        },
+        material: "",
+        color: "",
+        supplierContactMethod: "email",
+        supplierExternalPlatform: "",
+        supplierCompany: "Proveedor local tornilleria",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "SO101-SCREW-KIT",
+        unitCost: 180,
+        leadTime: "3 dias",
+        minimumPurchaseQuantity: "1",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [],
+        notes: "Incluye tornillos, tuercas e insertos necesarios."
+      },
+      {
+        id: "so101-cable-kit",
+        name: "Arnes y cableado SO101",
+        type: "cableado",
+        quantity: 1,
+        unit: "set",
+        origin: "comprado",
+        process: "pendiente",
+        specs: {
+          cableType: "Arnes de servos",
+          gauge: "22 AWG",
+          length: "Varias longitudes",
+          connectorA: "Servo bus",
+          connectorB: "Control board",
+          pinout: "Segun configuracion SO101"
+        },
+        material: "",
+        color: "",
+        supplierContactMethod: "externa",
+        supplierExternalPlatform: "AMAZON BUSINESS",
+        supplierCompany: "Proveedor electronico",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "SO101-CABLE-KIT",
+        unitCost: 220,
+        leadTime: "7 dias",
+        minimumPurchaseQuantity: "1",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [],
+        notes: "Cableado preparado para evitar desconexiones durante operacion."
+      },
+      {
+        id: "so101-power-supply",
+        name: "Fuente 7.4V / 5A",
+        type: "electronico",
+        quantity: 1,
+        unit: "pieza",
+        origin: "comprado",
+        process: "pendiente",
+        specs: {
+          function: "Alimentacion de servos",
+          mpn: "7.4V 5A",
+          voltage: "7.4V",
+          current: "5A"
+        },
+        material: "",
+        color: "",
+        supplierContactMethod: "externa",
+        supplierExternalPlatform: "AMAZON BUSINESS",
+        supplierCompany: "Proveedor electronico",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "PSU-7V4-5A",
+        unitCost: 260,
+        leadTime: "7 dias",
+        minimumPurchaseQuantity: "1",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [],
+        notes: "Fuente para prueba y operacion basica."
+      },
+      {
+        id: "so101-packaging",
+        name: "Empaque y proteccion SO101",
+        type: "empaque",
+        quantity: 1,
+        unit: "set",
+        origin: "comprado",
+        process: "pendiente",
+        specs: {
+          material: "Caja corrugada + foam",
+          size: "Ajustar a producto final",
+          labeling: "SKU SO101"
+        },
+        material: "",
+        color: "",
+        supplierContactMethod: "email",
+        supplierExternalPlatform: "",
+        supplierCompany: "Proveedor local empaque",
+        supplierContact: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierPartNumber: "SO101-PACK",
+        unitCost: 120,
+        leadTime: "5 dias",
+        minimumPurchaseQuantity: "1",
+        referenceLink: "",
+        needsSupplierResearch: false,
+        supplierResearchNotes: "",
+        printDesigns: [],
+        notes: "Empaque para envio local."
+      }
     ]
   }
 ];

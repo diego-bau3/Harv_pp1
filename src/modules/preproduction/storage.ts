@@ -1,12 +1,11 @@
 import type { Product } from "../sales/types";
-import { createSo101SampleRoute, so101SampleProductId } from "./data";
 import type { PreproductionResource, PreproductionRoute } from "./types";
-import { normalizeStepSequence, nowIso, preproductionId } from "./utils";
+import { getDefaultPreproductionRequiredArea, normalizeStepSequence, nowIso, preproductionId } from "./utils";
 
 export const preproductionRoutesStorageKey = "harv:preproduction-routes:v1";
 
 export function getDefaultPreproductionProductId(products: Product[]) {
-  return products.find((product) => product.id === so101SampleProductId || product.sku === "SO101")?.id ?? products[0]?.id ?? "";
+  return products[0]?.id ?? "";
 }
 
 function normalizeResources(resources: unknown): PreproductionResource[] {
@@ -42,7 +41,7 @@ export function normalizePreproductionRoute(route: Partial<PreproductionRoute>, 
         isKittingStep: step.isKittingStep ?? false,
         name: step.name ?? "",
         processType: step.processType ?? "ensamble",
-        station: step.station ?? "",
+        station: step.station ?? getDefaultPreproductionRequiredArea(step.processType ?? "ensamble"),
         estimatedMinutes: Number(step.estimatedMinutes ?? 1),
         outputName: step.outputName ?? "",
         outputQuantity: Number(step.outputQuantity ?? (step.outputName ? 1 : 0)),
@@ -59,34 +58,8 @@ export function normalizePreproductionRoute(route: Partial<PreproductionRoute>, 
   };
 }
 
-function isStarterRoute(route: PreproductionRoute) {
-  return route.steps.length <= 1 && route.steps.every((step) => step.isKittingStep);
-}
-
-export function createSeedPreproductionRoutes(products: Product[]) {
-  return products
-    .map((product) => createSo101SampleRoute(product))
-    .filter((route): route is PreproductionRoute => Boolean(route));
-}
-
-export function mergeSeedPreproductionRoutes(storedRoutes: PreproductionRoute[], products: Product[]) {
-  const seedRoutes = createSeedPreproductionRoutes(products);
-  const nextRoutes = [...storedRoutes];
-
-  seedRoutes.forEach((seedRoute) => {
-    const existingRouteIndex = nextRoutes.findIndex((route) => route.productId === seedRoute.productId);
-
-    if (existingRouteIndex < 0) {
-      nextRoutes.push(seedRoute);
-      return;
-    }
-
-    if (isStarterRoute(nextRoutes[existingRouteIndex])) {
-      nextRoutes[existingRouteIndex] = seedRoute;
-    }
-  });
-
-  return nextRoutes;
+function isSampleRoute(route: PreproductionRoute) {
+  return route.id.toLowerCase().includes("sample") || route.productId === "product-so101";
 }
 
 export function loadStoredPreproductionRoutes(products: Product[]) {
@@ -94,23 +67,25 @@ export function loadStoredPreproductionRoutes(products: Product[]) {
     const storedRoutes = window.localStorage.getItem(preproductionRoutesStorageKey);
 
     if (!storedRoutes) {
-      return createSeedPreproductionRoutes(products);
+      return [];
     }
 
+    const allowedProductIds = new Set(products.map((product) => product.id));
     const parsedRoutes = JSON.parse(storedRoutes);
-    const normalizedRoutes = Array.isArray(parsedRoutes)
-      ? parsedRoutes.map((route) => normalizePreproductionRoute(route, getDefaultPreproductionProductId(products)))
-      : [];
 
-    return mergeSeedPreproductionRoutes(normalizedRoutes, products);
+    return Array.isArray(parsedRoutes)
+      ? parsedRoutes
+          .map((route) => normalizePreproductionRoute(route, getDefaultPreproductionProductId(products)))
+          .filter((route) => allowedProductIds.has(route.productId) && !isSampleRoute(route))
+      : [];
   } catch {
-    return createSeedPreproductionRoutes(products);
+    return [];
   }
 }
 
 export function saveStoredPreproductionRoutes(routes: PreproductionRoute[]) {
   try {
-    window.localStorage.setItem(preproductionRoutesStorageKey, JSON.stringify(routes));
+    window.localStorage.setItem(preproductionRoutesStorageKey, JSON.stringify(routes.filter((route) => !isSampleRoute(route))));
   } catch {
     return;
   }

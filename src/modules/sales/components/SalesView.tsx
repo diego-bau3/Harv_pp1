@@ -4,6 +4,7 @@ import {
   Ban,
   CheckCircle2,
   ClipboardCheck,
+  Download,
   Edit3,
   FileUp,
   PackagePlus,
@@ -54,6 +55,7 @@ import {
   salesGeneratedOrdersStorageKey,
   salesSentQuotesStorageKey
 } from "../utils";
+import { downloadSalesQuotePdf } from "../quotePdf";
 import { ClientModal } from "./ClientModal";
 import { ProductModal } from "./ProductModal";
 
@@ -136,6 +138,8 @@ export function SalesView({ onBack, products }: SalesViewProps) {
   const [clientModal, setClientModal] = useState<{ client?: Client } | null>(null);
   const [isProductModalOpen, setProductModalOpen] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>("orden-compra-cliente");
+  const [quotePdfState, setQuotePdfState] = useState<Record<string, "idle" | "generating" | "error">>({});
+  const [quotePdfMessage, setQuotePdfMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedClient = useMemo(
@@ -433,6 +437,19 @@ export function SalesView({ onBack, products }: SalesViewProps) {
 
     setGeneratedOrders((currentOrders) => [completedOrder, ...currentOrders]);
     setOrder(createInitialOrder(salesUser));
+  }
+
+  async function downloadQuotePdf(quote: SalesQuote, client?: Client) {
+    setQuotePdfMessage("");
+    setQuotePdfState((currentState) => ({ ...currentState, [quote.folio]: "generating" }));
+
+    try {
+      await downloadSalesQuotePdf(quote, client);
+      setQuotePdfState((currentState) => ({ ...currentState, [quote.folio]: "idle" }));
+    } catch (error) {
+      setQuotePdfState((currentState) => ({ ...currentState, [quote.folio]: "error" }));
+      setQuotePdfMessage(error instanceof Error ? error.message : "No se pudo descargar la cotizacion.");
+    }
   }
 
   function markGeneratedOrderPaid(orderFolio: string) {
@@ -928,6 +945,7 @@ export function SalesView({ onBack, products }: SalesViewProps) {
               const quoteClient = clients.find((client) => client.id === quote.selectedClientId);
               const quoteTotal = orderTotals(quote.lines).total;
               const quoteCurrency = currencyForLines(quote.lines);
+              const isPdfGenerating = quotePdfState[quote.folio] === "generating";
 
               return (
                 <article className="generated-order-row quote-row" key={quote.folio}>
@@ -948,11 +966,23 @@ export function SalesView({ onBack, products }: SalesViewProps) {
                     <strong>{formatDateTime(quote.sentAt)}</strong>
                   </div>
                   <span className={`order-status status-${quote.status}`}>{quoteStatusLabels[quote.status]}</span>
+                  <div className="generated-order-actions quote-actions">
+                    <button
+                      className="secondary-button compact-button"
+                      disabled={isPdfGenerating}
+                      onClick={() => void downloadQuotePdf(quote, quoteClient)}
+                      type="button"
+                    >
+                      <Download size={15} />
+                      {isPdfGenerating ? "Generando" : "Descargar PDF"}
+                    </button>
+                  </div>
                 </article>
               );
             })}
 
             {sentQuotes.length === 0 ? <p className="empty-state">Todavía no hay cotizaciones enviadas.</p> : null}
+            {quotePdfMessage ? <p className="quote-pdf-message">{quotePdfMessage}</p> : null}
           </div>
         </section>
 

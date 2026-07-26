@@ -15,7 +15,8 @@ import {
   ShoppingCart,
   Sparkles,
   TestTube2,
-  Truck
+  Truck,
+  UsersRound
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -31,37 +32,12 @@ export type Profile = {
 
 export const profiles: Profile[] = [
   {
-    id: "super-admin",
-    name: "Super Admin",
-    note: "Puede ver todo",
-    status: "sin-iniciar",
-    icon: ShieldCheck,
-    accent: "#8f3f2b",
-    tint: "#fff2e7"
-  },
-  {
-    id: "administrador-planta",
-    name: "Administrador de Planta",
-    status: "sin-iniciar",
-    icon: Factory,
-    accent: "#ad5b2b",
-    tint: "#fff5df"
-  },
-  {
-    id: "finanzas",
-    name: "Finanzas",
-    status: "sin-iniciar",
-    icon: Banknote,
-    accent: "#7d5a2f",
-    tint: "#f8f1dc"
-  },
-  {
-    id: "ventas",
-    name: "Ventas",
-    status: "terminado",
-    icon: HandCoins,
-    accent: "#b64b39",
-    tint: "#fff0ec"
+    id: "pre-produccion",
+    name: "Preproducción",
+    status: "en-proceso",
+    icon: Route,
+    accent: "#9a5438",
+    tint: "#fff0e7"
   },
   {
     id: "compras",
@@ -72,20 +48,20 @@ export const profiles: Profile[] = [
     tint: "#fff4cf"
   },
   {
-    id: "ingenieria",
-    name: "Ingeniería",
-    status: "sin-iniciar",
-    icon: HardHat,
-    accent: "#82643a",
-    tint: "#f7f0e3"
+    id: "almacen",
+    name: "Almacén",
+    status: "en-proceso",
+    icon: Boxes,
+    accent: "#775d2a",
+    tint: "#fbf1d7"
   },
   {
-    id: "pre-produccion",
-    name: "Preproducción",
-    status: "en-proceso",
-    icon: Route,
-    accent: "#9a5438",
-    tint: "#fff0e7"
+    id: "ventas",
+    name: "Ventas",
+    status: "terminado",
+    icon: HandCoins,
+    accent: "#b64b39",
+    tint: "#fff0ec"
   },
   {
     id: "produccion",
@@ -94,14 +70,6 @@ export const profiles: Profile[] = [
     icon: LineChart,
     accent: "#a4472d",
     tint: "#ffeee8"
-  },
-  {
-    id: "almacen",
-    name: "Almacén",
-    status: "en-proceso",
-    icon: Boxes,
-    accent: "#775d2a",
-    tint: "#fbf1d7"
   },
   {
     id: "fabricacion",
@@ -144,6 +112,31 @@ export const profiles: Profile[] = [
     tint: "#fff2d2"
   },
   {
+    id: "ingenieria",
+    name: "Ingeniería",
+    status: "sin-iniciar",
+    icon: HardHat,
+    accent: "#82643a",
+    tint: "#f7f0e3"
+  },
+  {
+    id: "finanzas",
+    name: "Finanzas",
+    status: "en-proceso",
+    icon: Banknote,
+    accent: "#7d5a2f",
+    tint: "#f8f1dc"
+  },
+  {
+    id: "recursos-humanos",
+    name: "Recursos Humanos",
+    note: "Personal y roles",
+    status: "en-proceso",
+    icon: UsersRound,
+    accent: "#6f5b3a",
+    tint: "#f4f0e5"
+  },
+  {
     id: "seguridad",
     name: "Seguridad",
     status: "sin-iniciar",
@@ -158,5 +151,22 @@ export const profiles: Profile[] = [
     icon: Sparkles,
     accent: "#9d5031",
     tint: "#fff0e6"
+  },
+  {
+    id: "administrador-planta",
+    name: "Administrador de Planta",
+    status: "sin-iniciar",
+    icon: Factory,
+    accent: "#ad5b2b",
+    tint: "#fff5df"
+  },
+  {
+    id: "super-admin",
+    name: "Super Admin",
+    note: "Puede ver todo",
+    status: "sin-iniciar",
+    icon: ShieldCheck,
+    accent: "#8f3f2b",
+    tint: "#fff2e7"
   }
 ];

@@ -46,14 +46,21 @@ export type ProductComponentType =
   | "servicio-externo"
   | "otro";
 
+export type ProductComponentOrigin = "fabricado-en-planta" | "comprado" | "servicio-externo" | "pendiente";
+
 export type ProductComponentProcess =
   | "impresion-3d"
-  | "comprado"
-  | "fabricado"
-  | "ensamblado"
+  | "cnc"
+  | "corte-laser"
+  | "doblado"
+  | "soldadura"
   | "cableado"
-  | "servicio-externo"
+  | "ensamble"
+  | "acabado"
+  | "fabricacion-manual"
   | "pendiente";
+
+export type ProductComponentSpecs = Record<string, string>;
 
 export type Priority = "normal" | "alta" | "urgente" | "critica";
 
@@ -119,7 +126,9 @@ export type ProductComponent = {
   type: ProductComponentType;
   quantity: number;
   unit: ProductUnit;
+  origin: ProductComponentOrigin;
   process: ProductComponentProcess;
+  specs: ProductComponentSpecs;
   material: string;
   color: string;
   supplierContactMethod: ProductSupplierContactMethod;

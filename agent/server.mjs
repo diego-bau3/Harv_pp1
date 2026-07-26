@@ -2,6 +2,7 @@ import http from "node:http";
 import dgram from "node:dgram";
 import net from "node:net";
 import os from "node:os";
+import { valueAssets } from "./assetValuation.mjs";
 import { linkPrinter, listLinkedPrinters, startLinkedPrinterConnections } from "./printerRegistry.mjs";
 
 const host = process.env.HARV_AGENT_HOST ?? "127.0.0.1";
@@ -386,6 +387,26 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, 500, {
         message: "Discovery failed.",
         error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/finance/asset-valuations") {
+    try {
+      const body = await readJsonBody(request);
+      const valuations = await valueAssets(body.assets);
+
+      sendJson(response, 200, {
+        message:
+          valuations.length > 0
+            ? `${valuations.length} activo(s) financiero(s) actualizado(s).`
+            : "No se recibieron activos para valuar.",
+        valuations
+      });
+    } catch (error) {
+      sendJson(response, error.status ?? 500, {
+        message: error instanceof Error ? error.message : "No se pudieron valuar los activos."
       });
     }
     return;

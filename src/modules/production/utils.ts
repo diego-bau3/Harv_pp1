@@ -99,227 +99,10 @@ export function createProductionPendingQueue(products: Product[], planDate = tod
   }
 
   return {
-    source: "demo",
-    sourceLabel: "Demo hasta tener órdenes aprobadas de Ventas",
-    orders: createDemoPendingOrders(products, planDate)
+    source: "ventas",
+    sourceLabel: "Ordenes aprobadas de Ventas",
+    orders: []
   };
-}
-
-export function createSo101SamplePendingQueue(products: Product[], planDate = todayIso()): ProductionPendingQueue {
-  const so101 = findSo101Product(products);
-
-  if (!so101) {
-    return {
-      source: "sample",
-      sourceLabel: "Sample SO101 x10 sin producto SO101",
-      orders: []
-    };
-  }
-
-  return {
-    source: "sample",
-    sourceLabel: "Sample SO101 x10",
-    orders: [
-      createPendingOrder({
-        id: "prod-pending-sample-so101-10",
-        sourceType: "sample",
-        sourceOrder: "SAMPLE-SO101-10",
-        clientName: "Sample Harv",
-        product: so101,
-        quantity: 10,
-        dueDate: planDate,
-        priority: "urgente",
-        status: "lista",
-        notes: "Prueba de planeación: 10 equipos, ensamble de 8 min por equipo, 2 estaciones."
-      })
-    ]
-  };
-}
-
-export function createSo101SamplePlanningContext(
-  products: Product[],
-  context: ProductionPlanningContext
-): ProductionPlanningContext {
-  const so101 = findSo101Product(products);
-
-  if (!so101) {
-    return context;
-  }
-
-  const sampleRoute: PreproductionRoute = {
-    id: "sample-route-so101-production",
-    productId: so101.id,
-    status: "liberada",
-    updatedAt: nowIso(),
-    steps: [
-      {
-        id: "sample-so101-kitting",
-        sequence: 1,
-        isKittingStep: true,
-        name: "Recolección agrupada de 10 kits SO101",
-        processType: "kitting",
-        station: "Almacén / Kitting",
-        estimatedMinutes: 60,
-        outputName: "Kit SO101",
-        outputQuantity: 10,
-        outputUnit: "kit",
-        instructions: "Recolectar en una sola corrida tornillería, motores, piezas impresas y gripper.",
-        kittingComponents: so101.components.map((component) => ({
-          id: `sample-kit-${component.id}`,
-          componentId: component.id,
-          componentName: component.name,
-          quantity: component.quantity,
-          unit: component.unit
-        })),
-        componentUses: [],
-        subassemblyUses: [],
-        tools: [],
-        consumables: []
-      },
-      {
-        id: "sample-so101-assembly-base",
-        sequence: 2,
-        isKittingStep: false,
-        name: "Base + tornillería",
-        processType: "ensamble",
-        station: "Ensamble 1",
-        estimatedMinutes: 2,
-        outputName: "Base preparada",
-        outputQuantity: 1,
-        outputUnit: "subensamble",
-        instructions: "Montar base con tornillos principales.",
-        kittingComponents: [],
-        componentUses: [],
-        subassemblyUses: [],
-        tools: [],
-        consumables: []
-      },
-      {
-        id: "sample-so101-assembly-motor",
-        sequence: 3,
-        isKittingStep: false,
-        name: "Motor en base",
-        processType: "ensamble",
-        station: "Ensamble 1",
-        estimatedMinutes: 3,
-        outputName: "Motor instalado",
-        outputQuantity: 1,
-        outputUnit: "subensamble",
-        instructions: "Fijar motor en base y revisar alineación.",
-        kittingComponents: [],
-        componentUses: [],
-        subassemblyUses: [],
-        tools: [],
-        consumables: []
-      },
-      {
-        id: "sample-so101-assembly-gripper",
-        sequence: 4,
-        isKittingStep: false,
-        name: "Gripper y cierre",
-        processType: "ensamble",
-        station: "Ensamble 2",
-        estimatedMinutes: 3,
-        outputName: "SO101 ensamblado",
-        outputQuantity: 1,
-        outputUnit: "equipo",
-        instructions: "Montar gripper, cerrar tornillería y preparar para calidad.",
-        kittingComponents: [],
-        componentUses: [],
-        subassemblyUses: [],
-        tools: [],
-        consumables: []
-      },
-      {
-        id: "sample-so101-quality",
-        sequence: 5,
-        isKittingStep: false,
-        name: "Calidad funcional rápida",
-        processType: "inspeccion",
-        station: "Calidad",
-        estimatedMinutes: 2,
-        outputName: "SO101 aprobado",
-        outputQuantity: 1,
-        outputUnit: "equipo",
-        instructions: "Validar movimiento, gripper y tornillería visible.",
-        kittingComponents: [],
-        componentUses: [],
-        subassemblyUses: [],
-        tools: [],
-        consumables: []
-      }
-    ]
-  };
-
-  return {
-    ...context,
-    routes: [sampleRoute, ...context.routes.filter((route) => route.id !== sampleRoute.id)]
-  };
-}
-
-export function createDemoPendingOrders(products: Product[], planDate = todayIso()): ProductionPendingOrder[] {
-  const activeProducts = products.filter((product) => product.status !== "inactivo");
-  const firstProduct = activeProducts[0];
-  const secondProduct = activeProducts[1] ?? activeProducts[0];
-  const thirdProduct = activeProducts[2] ?? activeProducts[0];
-
-  if (!firstProduct) {
-    return [];
-  }
-
-  const nextDate = addDays(planDate, 1);
-  const soonDate = addDays(planDate, 3);
-
-  return [
-    createPendingOrder({
-      id: "prod-pending-demo-1",
-      sourceType: "demo",
-      sourceOrder: "OV-1042",
-      clientName: "AeroLab Norte",
-      product: firstProduct,
-      quantity: 6,
-      dueDate: planDate,
-      priority: "urgente",
-      status: "lista",
-      notes: "Entrega comprometida para cierre de turno."
-    }),
-    createPendingOrder({
-      id: "prod-pending-demo-2",
-      sourceType: "demo",
-      sourceOrder: "OV-1047",
-      clientName: "Mecánica Delta",
-      product: firstProduct,
-      quantity: 4,
-      dueDate: nextDate,
-      priority: "alta",
-      status: "lista",
-      notes: "Mismo producto que OV-1042; conviene recolectar junto."
-    }),
-    createPendingOrder({
-      id: "prod-pending-demo-3",
-      sourceType: "demo",
-      sourceOrder: "OV-1051",
-      clientName: "Ramos Automation",
-      product: secondProduct,
-      quantity: 3,
-      dueDate: soonDate,
-      priority: "normal",
-      status: secondProduct.components.length > 0 ? "lista" : "riesgo",
-      notes: "Validar ruta antes de liberar ensamble completo."
-    }),
-    createPendingOrder({
-      id: "prod-pending-demo-4",
-      sourceType: "demo",
-      sourceOrder: "OV-1055",
-      clientName: "Taller Central",
-      product: thirdProduct,
-      quantity: 2,
-      dueDate: nextDate,
-      priority: "critica",
-      status: thirdProduct.components.some((component) => component.needsSupplierResearch) ? "riesgo" : "lista",
-      notes: "Revisar componentes sin proveedor antes de cerrar plan."
-    })
-  ];
 }
 
 export function generateProductionPlan(
@@ -755,11 +538,15 @@ function createPendingOrdersFromSales(
     .flatMap((order) => {
       const client = order.selectedClientId ? clientById.get(order.selectedClientId) : undefined;
 
-      return order.lines.map((line, lineIndex) => {
+      return order.lines.flatMap((line, lineIndex) => {
         const product = resolveLineProduct(line.product, products);
         const sourceOrder = order.lines.length > 1 ? `${order.folio} · L${lineIndex + 1}` : order.folio;
 
-        return createPendingOrder({
+        if (!product || product.status !== "activo") {
+          return [];
+        }
+
+        return [createPendingOrder({
           id: `prod-pending-sales-${order.folio}-${line.id}`,
           sourceType: "ventas",
           sourceOrder,
@@ -770,7 +557,7 @@ function createPendingOrdersFromSales(
           priority: order.priority,
           status: product.components.length > 0 ? "lista" : "riesgo",
           notes: order.internalNotes || order.priorityReason || "Orden aprobada comercialmente."
-        });
+        })];
       });
     });
 }
@@ -804,14 +591,7 @@ function createPendingOrder(input: {
 }
 
 function resolveLineProduct(lineProduct: Product, products: Product[]) {
-  return products.find((product) => product.id === lineProduct.id || product.sku === lineProduct.sku) ?? lineProduct;
-}
-
-function findSo101Product(products: Product[]) {
-  return (
-    products.find((product) => product.sku.trim().toUpperCase() === "SO101") ??
-    products.find((product) => product.name.toUpperCase().includes("SO101"))
-  );
+  return products.find((product) => product.id === lineProduct.id || product.sku === lineProduct.sku);
 }
 
 function sortPendingOrders(orders: ProductionPendingOrder[], strategy: ProductionPlanStrategy) {

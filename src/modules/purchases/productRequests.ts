@@ -1,15 +1,28 @@
 import type { Product, ProductComponent } from "../sales/types";
+import { formatProductComponentSpecs, isExternalProductComponent } from "../sales/utils";
 import type { PurchaseRequest } from "./types";
 import { futureDate } from "./utils";
 
-const externalProcesses = new Set<ProductComponent["process"]>(["comprado", "servicio-externo"]);
-
 function needsSupplierRequest(component: ProductComponent) {
+  if (!isExternalProductComponent(component)) {
+    return false;
+  }
+
   if (component.needsSupplierResearch) {
     return true;
   }
 
-  return externalProcesses.has(component.process) && !component.supplierCompany.trim();
+  return !component.supplierCompany.trim();
+}
+
+function requestNotesForComponent(component: ProductComponent) {
+  const specSummary = formatProductComponentSpecs(component.type, component.specs ?? {});
+  const guidance =
+    component.supplierResearchNotes ||
+    component.notes ||
+    "Compras debe investigar supplier, costo, lead time y datos de contacto.";
+
+  return [specSummary ? `Especificaciones: ${specSummary}.` : "", guidance].filter(Boolean).join(" ");
 }
 
 export function createProductSupplierRequests(products: Product[], existingRequests: PurchaseRequest[] = []) {
@@ -38,10 +51,7 @@ export function createProductSupplierRequests(products: Product[], existingReque
         priority: component.needsSupplierResearch ? "alta" : "normal",
         status: "bloqueado",
         reason: "Componente marcado Sin proveedor desde Productos.",
-        notes:
-          component.supplierResearchNotes ||
-          component.notes ||
-          "Compras debe investigar supplier, costo, lead time y datos de contacto."
+        notes: requestNotesForComponent(component)
       }))
       .filter((request) => !existingKeys.has(`${request.productId}:${request.componentId}`))
   );

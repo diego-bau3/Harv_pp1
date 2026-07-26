@@ -26,10 +26,10 @@ export function ProfileSelector({ onOpenProducts, onSelect }: ProfileSelectorPro
       </section>
 
       <section className="profile-grid" aria-label="Perfiles de Harv">
+        <ProfileCard profile={productProfile} onSelect={onOpenProducts} />
         {profiles.map((profile) => (
           <ProfileCard key={profile.id} profile={profile} onSelect={onSelect} />
         ))}
-        <ProfileCard profile={productProfile} onSelect={onOpenProducts} />
       </section>
     </main>
   );

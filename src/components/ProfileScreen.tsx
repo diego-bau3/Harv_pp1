@@ -2,6 +2,8 @@ import { ArrowLeft } from "lucide-react";
 import type { Profile } from "../data/profiles";
 import { AssemblyScreen } from "../modules/assembly/components/AssemblyScreen";
 import { FabricationScreen } from "../modules/fabrication/components/FabricationScreen";
+import { FinanceScreen } from "../modules/finance/components/FinanceScreen";
+import { HumanResourcesScreen } from "../modules/human-resources/components/HumanResourcesScreen";
 import { PreproductionScreen } from "../modules/preproduction/components/PreproductionScreen";
 import type { PreproductionRoute } from "../modules/preproduction/types";
 import { ProductionScreen } from "../modules/production/components/ProductionScreen";
@@ -125,6 +127,14 @@ export function ProfileScreen({
 
   if (profile.id === "ensamble") {
     return <AssemblyScreen products={products} onBack={onBack} />;
+  }
+
+  if (profile.id === "finanzas") {
+    return <FinanceScreen products={products} purchaseOrders={purchaseOrders} onBack={onBack} />;
+  }
+
+  if (profile.id === "recursos-humanos") {
+    return <HumanResourcesScreen onBack={onBack} />;
   }
 
   return (

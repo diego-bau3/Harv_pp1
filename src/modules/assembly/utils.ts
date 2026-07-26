@@ -2,8 +2,7 @@ import type { PreproductionRoute, PreproductionStep } from "../preproduction/typ
 import type { ProductionGeneratedPlan, ProductionPlanBlock } from "../production/types";
 import {
   createDefaultShiftSettings,
-  createSo101SamplePendingQueue,
-  createSo101SamplePlanningContext,
+  createProductionPendingQueue,
   generateProductionPlan,
   loadProductionPlanningContext,
   productionLatestPlanStorageKey,
@@ -46,7 +45,7 @@ function nowIso() {
 }
 
 export function loadStoredAssemblyStations() {
-  return loadStoredList<AssemblyStation>(assemblyStationsStorageKey, []);
+  return loadStoredList<AssemblyStation>(assemblyStationsStorageKey, []).filter((station) => !isSampleOrDemoAssemblySource(station));
 }
 
 export function saveStoredAssemblyStations(stations: AssemblyStation[]) {
@@ -54,7 +53,7 @@ export function saveStoredAssemblyStations(stations: AssemblyStation[]) {
 }
 
 export function loadStoredAssemblyProblems() {
-  return loadStoredList<AssemblyProblem>(assemblyProblemsStorageKey, []);
+  return loadStoredList<AssemblyProblem>(assemblyProblemsStorageKey, []).filter((problem) => !isSampleOrDemoAssemblySource(problem));
 }
 
 export function saveStoredAssemblyProblems(problems: AssemblyProblem[]) {
@@ -67,7 +66,7 @@ export function loadLatestProductionPlanForAssembly(products: Product[]): {
 } {
   const storedPlan = loadStoredLatestProductionPlan();
 
-  if (storedPlan) {
+  if (storedPlan && !isSampleOrDemoPlan(storedPlan)) {
     return {
       plan: storedPlan,
       source: {
@@ -80,30 +79,50 @@ export function loadLatestProductionPlanForAssembly(products: Product[]): {
 
   const settings = createDefaultShiftSettings();
   const baseContext = loadProductionPlanningContext();
-  const context = createSo101SamplePlanningContext(products, baseContext);
-  const queue = createSo101SamplePendingQueue(products, settings.planDate);
-  const plan = generateProductionPlan(queue.orders, products, settings, context, queue.sourceLabel);
+  const queue = createProductionPendingQueue(products, settings.planDate);
+  const plan = generateProductionPlan(queue.orders, products, settings, baseContext, queue.sourceLabel);
 
   return {
     plan,
     source: {
-      label: "Sample SO101 x10",
+      label: queue.sourceLabel,
       generatedAt: plan.generatedAt,
-      isFallback: true
+      isFallback: false
     }
   };
 }
 
+function isSampleOrDemoPlan(plan: ProductionGeneratedPlan) {
+  const normalizedLabel = plan.sourceLabel.toLowerCase();
+
+  return (
+    normalizedLabel.includes("sample") ||
+    normalizedLabel.includes("demo") ||
+    plan.pendingOrders.some((order) => order.sourceType === "sample" || order.sourceType === "demo")
+  );
+}
+
+function isSampleOrDemoAssemblySource(source: Pick<AssemblyStation | AssemblyProblem, "id" | "sourceOrder">) {
+  const normalizedSourceOrder = source.sourceOrder.toLowerCase();
+  const normalizedId = source.id.toLowerCase();
+
+  return (
+    normalizedId.includes("sample") ||
+    normalizedSourceOrder.includes("sample") ||
+    normalizedSourceOrder.includes("ov-104") ||
+    normalizedSourceOrder.includes("ov-105")
+  );
+}
+
 export function createAssemblyStationsFromPlan(plan: ProductionGeneratedPlan, products: Product[]): AssemblyStation[] {
   const context = loadProductionPlanningContext();
-  const sampleContext = createSo101SamplePlanningContext(products, context);
   const assemblyBlocks = plan.scheduledBlocks.filter((block) => block.type === "ensamble");
 
   return assemblyBlocks.flatMap((block) => {
     const stationCount = Math.max(plan.settings.assemblyStations, 1);
     const quantities = splitQuantity(block.quantity, stationCount);
     const product = products.find((currentProduct) => currentProduct.sku === block.productSku);
-    const route = findRouteForProduct(sampleContext.routes, product?.id ?? "");
+    const route = findRouteForProduct(context.routes, product?.id ?? "");
     const steps = createAssemblySteps(block, route, product);
 
     return quantities
@@ -180,44 +199,7 @@ function createAssemblySteps(
     return routeSteps.map((step, index) => createStepFromRoute(step, index, product));
   }
 
-  return [
-    {
-      id: `${block.id}-base`,
-      sequence: 1,
-      title: "Base + tornillería",
-      station: "Ensamble",
-      targetMinutes: 2,
-      visual: "base",
-      components: ["1 base impresa", "4 tornillos M3x12"],
-      tools: ["Llave Allen 2.5 mm"],
-      consumables: ["Loctite opcional"],
-      instructions: ["Coloca la base sobre la mesa.", "Alinea los barrenos.", "Fija con tornillos sin aplicar torque final."]
-    },
-    {
-      id: `${block.id}-motor`,
-      sequence: 2,
-      title: "Motor en base",
-      station: "Ensamble",
-      targetMinutes: 3,
-      visual: "motor",
-      components: ["1 motor servo", "1 base preparada", "2 tornillos M3x12"],
-      tools: ["Llave Allen 2.5 mm", "Torquímetro"],
-      consumables: [],
-      instructions: ["Inserta el motor en la base.", "Revisa orientación del cable.", "Aprieta los tornillos al torque indicado."]
-    },
-    {
-      id: `${block.id}-gripper`,
-      sequence: 3,
-      title: "Gripper y cierre",
-      station: "Ensamble",
-      targetMinutes: 3,
-      visual: "gripper",
-      components: ["Palma de gripper", "Dedo izquierdo", "Dedo derecho", "Separadores"],
-      tools: ["Llave Allen 2 mm"],
-      consumables: [],
-      instructions: ["Monta palma central.", "Instala dedos y separadores.", "Verifica apertura y cierre libre."]
-    }
-  ];
+  return [];
 }
 
 function createStepFromRoute(step: PreproductionStep, index: number, product: Product | undefined): AssemblyStep {

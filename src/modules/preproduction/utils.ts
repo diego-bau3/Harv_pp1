@@ -24,11 +24,48 @@ export const preproductionRouteStatusLabels: Record<PreproductionRouteStatus, st
   liberada: "Liberada"
 };
 
+export const preproductionRequiredAreaOptions = [
+  "Almacén / Kitting",
+  "Impresión 3D",
+  "CNC / Maquinado",
+  "Fabricación manual",
+  "Ensamble",
+  "Calidad / Inspección",
+  "Prueba funcional",
+  "Empaque"
+] as const;
+
+const defaultPreproductionRequiredAreaByProcess: Record<PreproductionProcessType, string> = {
+  kitting: "Almacén / Kitting",
+  preparacion: "Fabricación manual",
+  ensamble: "Ensamble",
+  fabricacion: "Fabricación manual",
+  "impresion-3d": "Impresión 3D",
+  inspeccion: "Calidad / Inspección",
+  prueba: "Prueba funcional",
+  empaque: "Empaque"
+};
+
+export function getDefaultPreproductionRequiredArea(processType: PreproductionProcessType) {
+  return defaultPreproductionRequiredAreaByProcess[processType] ?? "Ensamble";
+}
+
+export function getPreproductionRequiredAreaOptions(currentArea = "") {
+  const normalizedCurrentArea = currentArea.trim();
+  const baseOptions = Array.from(preproductionRequiredAreaOptions);
+
+  if (normalizedCurrentArea && !baseOptions.includes(normalizedCurrentArea as (typeof preproductionRequiredAreaOptions)[number])) {
+    return [normalizedCurrentArea, ...baseOptions];
+  }
+
+  return baseOptions;
+}
+
 export const emptyPreproductionStepDraft: PreproductionStepDraft = {
   isKittingStep: false,
   name: "",
   processType: "ensamble",
-  station: "",
+  station: getDefaultPreproductionRequiredArea("ensamble"),
   estimatedMinutes: 1,
   outputName: "",
   outputQuantity: 1,
@@ -74,7 +111,7 @@ export function summarizeRouteMinutesByStation(route: PreproductionRoute) {
   const stationMap = new Map<string, number>();
 
   route.steps.forEach((step) => {
-    const station = step.station || "Sin estación";
+    const station = step.station || "Sin área definida";
     stationMap.set(station, (stationMap.get(station) ?? 0) + Number(step.estimatedMinutes || 0));
   });
 
@@ -122,7 +159,7 @@ export function summarizeRouteResourcesByStation(route: PreproductionRoute) {
   >();
 
   route.steps.forEach((step) => {
-    const station = step.station || "Sin estación";
+    const station = step.station || "Sin área definida";
     const stationSummary =
       stationMap.get(station) ??
       {

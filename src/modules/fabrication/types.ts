@@ -117,6 +117,7 @@ export type FabricationLinkedPrinter = {
 export type FabricationJob = {
   id: string;
   createdAt: string;
+  sourceRef?: string;
   orderReference: string;
   partName: string;
   productName: string;

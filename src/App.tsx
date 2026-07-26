@@ -24,11 +24,39 @@ import type {
 } from "./modules/purchases/types";
 import { futureDate, purchaseId, purchaseReceiptIssueLabels } from "./modules/purchases/utils";
 import { productCatalog } from "./modules/sales/data";
-import type { Product } from "./modules/sales/types";
-import { createId } from "./modules/sales/utils";
+import type { Product, ProductStatus } from "./modules/sales/types";
+import { createId, generateProductSku } from "./modules/sales/utils";
 import { plantSupplies } from "./modules/supplies/data";
 
 type ProductDraft = Omit<Product, "id">;
+
+const cleanPlatformResetKey = "harv:platform-clean-reset:v1";
+const cleanPlatformResetVersion = "empty-client-sample-2026-07-21";
+let cleanPlatformResetChecked = false;
+
+function resetStoredHarvDataForCleanPlatform() {
+  if (cleanPlatformResetChecked || typeof window === "undefined") {
+    return;
+  }
+
+  cleanPlatformResetChecked = true;
+
+  try {
+    const currentVersion = window.localStorage.getItem(cleanPlatformResetKey);
+
+    if (currentVersion === cleanPlatformResetVersion) {
+      return;
+    }
+
+    const storedKeys = Array.from({ length: window.localStorage.length }, (_, index) => window.localStorage.key(index))
+      .filter((key): key is string => Boolean(key && key.startsWith("harv:")));
+
+    storedKeys.forEach((key) => window.localStorage.removeItem(key));
+    window.localStorage.setItem(cleanPlatformResetKey, cleanPlatformResetVersion);
+  } catch {
+    return;
+  }
+}
 
 function normalizeLookup(value: string) {
   return value.trim().toLowerCase();
@@ -53,6 +81,8 @@ function findMatchingSupplier(suppliers: PurchaseSupplier[], supplier: PurchaseS
 }
 
 export default function App() {
+  resetStoredHarvDataForCleanPlatform();
+
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [isProductCatalogOpen, setProductCatalogOpen] = useState(false);
   const [shouldOpenNewProduct, setShouldOpenNewProduct] = useState(false);
@@ -104,12 +134,35 @@ export default function App() {
     };
 
     setProducts((currentProducts) => {
+      const resolvedSku = (savedProduct.sku.trim() || generateProductSku(savedProduct.name, currentProducts, existingProduct?.id)).toUpperCase();
+      const skuAlreadyExists = currentProducts.some(
+        (product) => product.id !== savedProduct.id && product.sku.trim().toUpperCase() === resolvedSku
+      );
+      const productWithUniqueSku = {
+        ...savedProduct,
+        sku: skuAlreadyExists ? generateProductSku(savedProduct.name, currentProducts, existingProduct?.id) : resolvedSku
+      };
+
       if (existingProduct) {
-        return currentProducts.map((product) => (product.id === existingProduct.id ? savedProduct : product));
+        return currentProducts.map((product) => (product.id === existingProduct.id ? productWithUniqueSku : product));
       }
 
-      return [savedProduct, ...currentProducts];
+      return [productWithUniqueSku, ...currentProducts];
     });
+  }
+
+  function updateProductStatus(productId: string, status: ProductStatus) {
+    setProducts((currentProducts) =>
+      currentProducts.map((product) => (product.id === productId ? { ...product, status } : product))
+    );
+  }
+
+  function trashProduct(productId: string) {
+    setProducts((currentProducts) => currentProducts.filter((product) => product.id !== productId));
+    setPreproductionRoutes((currentRoutes) => currentRoutes.filter((route) => route.productId !== productId));
+    setPurchaseRequests((currentRequests) =>
+      currentRequests.filter((request) => request.productId !== productId && !request.sourceRef.includes(`:${productId}:`))
+    );
   }
 
   function openProductCatalog() {
@@ -474,6 +527,8 @@ export default function App() {
         }}
         onNewProductOpened={() => setShouldOpenNewProduct(false)}
         onSaveProduct={saveProduct}
+        onTrashProduct={trashProduct}
+        onUpdateProductStatus={updateProductStatus}
       />
     );
   }
