@@ -1,7 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import type { Profile } from "../data/profiles";
 import { AssemblyScreen } from "../modules/assembly/components/AssemblyScreen";
-import { FabricationScreen } from "../modules/fabrication/components/FabricationScreen";
+import { FabricationWorkspace } from "../modules/fabrication/components/FabricationWorkspace";
 import { FinanceScreen } from "../modules/finance/components/FinanceScreen";
 import { HumanResourcesScreen } from "../modules/human-resources/components/HumanResourcesScreen";
 import { PreproductionScreen } from "../modules/preproduction/components/PreproductionScreen";
@@ -106,7 +106,7 @@ export function ProfileScreen({
   }
 
   if (profile.id === "fabricacion") {
-    return <FabricationScreen products={products} onBack={onBack} />;
+    return <FabricationWorkspace products={products} onBack={onBack} />;
   }
 
   if (profile.id === "pre-produccion") {

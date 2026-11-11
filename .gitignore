@@ -7,3 +7,6 @@ vite.config.d.ts
 .codex/
 agent/.env
 agent/data/
+services/harv-hudson/data/
+services/harv-hudson/.test-data/
+.local/

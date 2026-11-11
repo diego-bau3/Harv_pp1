@@ -1,0 +1,29 @@
+.fabrication-workspace { min-height: 100dvh; background: #fff; min-width: 0; }
+.fabrication-workspace-tabs, .harv-hudson-tabs { display: flex; gap: 6px; min-width: 0; overflow-x: auto; }
+.fabrication-workspace-tabs { padding: 0 24px; border-bottom: 1px solid #e0e5de; }
+.fabrication-workspace-tabs button, .harv-hudson-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; min-height: 46px; padding: 10px 14px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: #647065; font-size: 14px; font-weight: 600; cursor: pointer; }
+.fabrication-workspace-tabs button[aria-selected="true"] { color: #9d4b2d; border-bottom-color: #9d4b2d; }
+.harv-hudson-tabs button[aria-selected="true"] { color: #236b58; border-bottom-color: #236b58; }
+.fabrication-workspace-tabs button:focus-visible, .harv-hudson-tabs button:focus-visible { outline: 2px solid #236b58; outline-offset: -4px; }
+.harv-hudson-toolbar { display: flex; align-items: center; gap: 16px; padding: 0 24px; border-bottom: 1px solid #e0e5de; background: #fafcf9; }
+.harv-hudson-tabs { flex: 1; }
+.harv-hudson-tabs button { min-height: 48px; font-size: 13px; padding: 10px; }
+.harv-hudson-status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #6f776e; white-space: nowrap; }
+.harv-hudson-status i { width: 7px; height: 7px; border-radius: 50%; background: #a65343; }
+.harv-hudson-status.ready i { background: #2c875f; }
+.harv-hudson-status.checking i { background: #b5802e; }
+.harv-hudson-surface { position: relative; min-width: 0; }
+.harv-hudson-frame { display: block; width: 100%; height: calc(100dvh - 173px); min-height: 510px; border: 0; background: #fafcf9; }
+.harv-hudson-unavailable { display: flex; min-height: 440px; padding: 32px 20px; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; color: #647065; }
+.harv-hudson-unavailable h2 { font-size: 20px; color: #2a342c; margin: 0; }
+.harv-hudson-unavailable p { max-width: 420px; margin: 0; font-size: 14px; }
+.harv-hudson-loading { position: absolute; z-index: 1; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fafcf9; pointer-events: none; }
+.fabrication-workspace .fabrication-profile-screen { min-height: 0; grid-template-rows: 1fr; }
+@media (max-width: 700px) {
+  .fabrication-workspace-tabs { padding: 0 12px; }
+  .fabrication-workspace-tabs button { font-size: 13px; padding: 10px; }
+  .harv-hudson-toolbar { flex-wrap: wrap; gap: 0; padding: 0 12px; }
+  .harv-hudson-tabs { flex-basis: 100%; }
+  .harv-hudson-status { margin: 6px 0 8px; }
+  .harv-hudson-frame { height: calc(100dvh - 204px); min-height: 510px; }
+}

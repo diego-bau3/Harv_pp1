@@ -1,0 +1,35 @@
+:root { --canvas: #f8fbf8; --ink: #26342d; --muted: #69796f; --line: #dfe7df; --soft: #f1f6f1; --accent: #28745f; --warm: #f3f7f1; --radius: 8px; --shadow: none; }
+*, *::before, *::after { letter-spacing: 0 !important; }
+html.hudson-desktop-shell .topbar { display: none; }
+.content { padding: 24px; max-width: 1700px; }
+.page-heading h1 { font-size: 24px; }
+.page-heading .eyebrow, .footer-line { display: none; }
+.btn, .onboarding, .panel, .printer-card, .library-card, .spool-card, .stat, .notice, .summary-box { border-radius: 8px; }
+.btn.primary { background: #28745f; border-color: #28745f; }
+.btn.primary:hover:not(:disabled) { background: #205d4c; }
+.panel { box-shadow: none; border: 0; background: transparent; border-top: 1px solid var(--line); border-radius: 0; }
+.panel .panel-body, .panel .panel-header { padding-left: 0; padding-right: 0; }
+.page-heading, .heading-actions, .section-title, .toolbar { flex-wrap: wrap; }
+.heading-actions .btn { white-space: normal; }
+.printers { grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); }
+.printers:empty { display: none; }
+.form-grid > *, .settings-grid > *, .bottom-grid > *, .stats > *, .panel, .copy { min-width: 0; }
+.field input, .field select, .field textarea { max-width: 100%; min-width: 0; }
+.onboarding { border: 0; background: #edf5ef; }
+.onboarding h2 { color: var(--ink); }
+.onboarding p { color: var(--muted); }
+@media (max-width: 700px) {
+  .content { padding: 18px 14px; }
+  .page-heading { gap: 14px; }
+  .page-heading h1 { font-size: 22px; }
+  .heading-actions { width: 100%; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .printers, .settings-grid, .bottom-grid, .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .printer-name { font-size: 18px; }
+  .printer-sub, .printer-actions .btn, .card-link, .queue-label, .queue-row small { font-size: 12px; }
+  .printer-actions .btn { min-height: 44px; }
+  .field input, .field select, .field textarea { width: 100%; }
+  .dialog-head h2 { font-size: 20px; }
+  .form-grid .full { grid-column: 1; }
+  .onboarding { padding: 20px; }
+}

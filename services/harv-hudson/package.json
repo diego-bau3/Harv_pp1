@@ -1,0 +1,19 @@
+{
+  "name": "harv-hudson",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.0.0 <25" },
+  "scripts": {
+    "start": "node src/main.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "dependencies": {
+    "basic-ftp": "6.2.1",
+    "fast-xml-parser": "5.11.1",
+    "mqtt": "5.16.0",
+    "yauzl": "3.4.0"
+  },
+  "devDependencies": { "yazl": "3.3.1" }
+}

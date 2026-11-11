@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:plant": "node scripts/start-plant.mjs",
     "agent:dev": "node agent/server.mjs",
+    "hudson:install": "npm --prefix services/harv-hudson ci",
+    "hudson:dev": "node services/harv-hudson/src/main.mjs",
+    "test:hudson": "npm --prefix services/harv-hudson test",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test:reliability": "tsc -p tsconfig.reliability.json --noEmit && node scripts/run-reliability-tests.mjs"

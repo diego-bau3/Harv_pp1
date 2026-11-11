@@ -52,6 +52,7 @@ import {
 type FabricationScreenProps = {
   products: Product[];
   onBack: () => void;
+  embedded?: boolean;
 };
 
 type PrintableComponentOption = {
@@ -412,7 +413,7 @@ function getQueueGroupId(job: FabricationJob) {
   return "next";
 }
 
-export function FabricationScreen({ products, onBack }: FabricationScreenProps) {
+export function FabricationScreen({ products, onBack, embedded = false }: FabricationScreenProps) {
   const [machines, setMachines] = useState<FabricationMachine[]>(loadStoredMachines);
   const [jobs, setJobs] = useState<FabricationJob[]>(loadStoredJobs);
   const [machineDraft, setMachineDraft] = useState<FabricationMachineDraft>(createEmptyMachineDraft);
@@ -1068,7 +1069,7 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
 
   return (
     <main className="profile-screen fabrication-profile-screen">
-      <header className="screen-header">
+      {!embedded && <header className="screen-header">
         <button className="icon-button" onClick={onBack} type="button" aria-label="Regresar a perfiles">
           <ArrowLeft size={22} />
         </button>
@@ -1078,7 +1079,7 @@ export function FabricationScreen({ products, onBack }: FabricationScreenProps) 
           </span>
           <h1>Fabricacion</h1>
         </div>
-      </header>
+      </header>}
 
       <section className="fabrication-body">
         <section className="fabrication-command-panel">
